@@ -11,60 +11,6 @@ type golBoard struct {
 	drawBoard *[][]int
 }
 
-//func (g *golBoard) Evolve() *[][]int {
-//	var b [][]int = *g.board
-//	for y := 0; y < len(b); y++ {
-//		for x := 0; x < len(b[y]); x++ {
-//			var count = countNeighbours(y, x, g.board)
-//			applyRulesToGolBoard(y, x, count, b[y][x] == 1, g.drawBoard)
-//		}
-//	}
-//	tmpGolRef := g.drawBoard
-//	g.board = g.drawBoard
-//	g.drawBoard = tmpGolRef
-//	return g.board
-//}
-func (g *golBoard) Evolve() *[][]int {
-	var b [][]int = *g.board
-
-	xyInChan := make(chan struct {
-		y int
-		x int
-	})
-	countChan := make(chan struct {
-		y int
-		x int
-		c int
-	})
-	var wg sync.WaitGroup
-	go cNeighbours(g.board, xyInChan, countChan)
-	go aRules(countChan, g, &wg)
-	for y := 0; y < len(b); y++ {
-		for x := 0; x < len(b[y]); x++ {
-			wg.Add(1)
-			xyInChan <- struct {
-				y int
-				x int
-			}{y: y, x: x}
-		}
-	}
-	wg.Wait()
-	close(xyInChan)
-	close(countChan)
-
-	//for y := 0; y < len(b); y++ {
-	//	for x := 0; x < len(b[y]); x++ {
-	//		var count = countNeighbours(y, x, g.board)
-	//		applyRulesToGolBoard(y, x, count, b[y][x] == 1, g.drawBoard)
-	//	}
-	//}
-	tmpGolRef := g.board
-	g.board = g.drawBoard
-	g.drawBoard = tmpGolRef
-	zeroOutBoard(g.drawBoard)
-	return g.board
-}
-
 func zeroOutBoard(board *[][]int) {
 	for y := range *board {
 		for x := range (*board)[y] {
@@ -151,6 +97,40 @@ func applyRulesToGolBoard(y int, x int, count int, live bool, golBoard *[][]int)
 	}
 }
 
+func (g *golBoard) Evolve() *[][]int {
+	var b [][]int = *g.board
+
+	xyInChan := make(chan struct {
+		y int
+		x int
+	})
+	countChan := make(chan struct {
+		y int
+		x int
+		c int
+	})
+	var wg sync.WaitGroup
+	go cNeighbours(g.board, xyInChan, countChan)
+	go aRules(countChan, g, &wg)
+	for y := 0; y < len(b); y++ {
+		for x := 0; x < len(b[y]); x++ {
+			wg.Add(1)
+			xyInChan <- struct {
+				y int
+				x int
+			}{y: y, x: x}
+		}
+	}
+	wg.Wait()
+	close(xyInChan)
+	close(countChan)
+	tmpGolRef := g.board
+	g.board = g.drawBoard
+	g.drawBoard = tmpGolRef
+	zeroOutBoard(g.drawBoard)
+	return g.board
+}
+
 func New(inBoard *[][]int) GameOfLifeBoard {
 	return &golBoard{board: inBoard, drawBoard: copyIncomingBoard(inBoard)}
 }
@@ -163,27 +143,3 @@ func copyIncomingBoard(inBoard *[][]int) *[][]int {
 	}
 	return &drawOnBoard
 }
-
-//func (g *GameOfLifeBoard) Evolve(*[][]int)  {
-//for y := 0; y < len(*golBoardOrig); y++ {
-//	for x := 0; x < len((*golBoardOrig)[y]); x++ {
-//		var count = countNeighbours(y, x, golBoardOrig)
-//		applyRulesToGolBoard(y, x, count, (*golBoardOrig)[y][x] == 1, newGolBoard)
-//	}
-//}
-//}
-
-//func evolveGOL(golBoardOrig *[][]int, newGolBoard *[][]int) {
-//	for y := 0; y < len(*golBoardOrig); y++ {
-//		for x := 0; x < len((*golBoardOrig)[y]); x++ {
-//			var count = countNeighbours(y,x,golBoardOrig)
-//			//fmt.Println()
-//			//fmt.Printf("Count for %d,%d is %d", x,y,count)
-//			//fmt.Println()
-//			//fmt.Println()
-//			//fmt.Println()
-//			//fmt.Println()
-//			applyRulesToGolBoard(y,x,count, (*golBoardOrig)[y][x] == 1,newGolBoard)
-//		}
-//	}
-//}
